@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>标普500：起始估值与之后10年回报</title>
+<title>估值与之后的回报：标普500 · 沪深300</title>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
 <style>
-:root{--bg:#fbfaf7;--panel:#fff;--fg:#1f2328;--muted:#5f6670;--line:#e3e1db;--grid:#ecebe6;--axis:#b9bcc2;--dot-old:#c3c7cd;--bad:#c8402a;--c0:#2a78d6;--c1:#eb6834;--c2:#1baf7a;--c3:#d99400;--tipbg:#fff}
-@media (prefers-color-scheme:dark){:root{--bg:#1a1a19;--panel:#232321;--fg:#f0efec;--muted:#b1b0a8;--line:#3a3a37;--grid:#2f2f2c;--axis:#5c5c58;--dot-old:#55554f;--bad:#e66767;--c0:#3987e5;--c1:#d95926;--c2:#199e70;--c3:#c98500;--tipbg:#2b2b29}}
+:root{--ok:#2e9d5b;--warn:#d9a400;--bg:#fbfaf7;--panel:#fff;--fg:#1f2328;--muted:#5f6670;--line:#e3e1db;--grid:#ecebe6;--axis:#b9bcc2;--dot-old:#c3c7cd;--bad:#c8402a;--c0:#2a78d6;--c1:#eb6834;--c2:#1baf7a;--c3:#d99400;--tipbg:#fff}
+@media (prefers-color-scheme:dark){:root{--ok:#3fb270;--warn:#e0b224;--bg:#1a1a19;--panel:#232321;--fg:#f0efec;--muted:#b1b0a8;--line:#3a3a37;--grid:#2f2f2c;--axis:#5c5c58;--dot-old:#55554f;--bad:#e66767;--c0:#3987e5;--c1:#d95926;--c2:#199e70;--c3:#c98500;--tipbg:#2b2b29}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Noto Sans CJK SC","Microsoft YaHei",sans-serif;line-height:1.5}
 .wrap{max-width:1100px;margin:0 auto;padding:28px 20px 48px;display:flex;flex-direction:column;gap:22px}
@@ -35,24 +35,41 @@ details{font-size:12.5px;color:var(--muted);line-height:1.7}
 summary{cursor:pointer;color:var(--fg)}
 .warn{margin:0;padding:10px 14px;border-radius:8px;border:1px solid var(--bad);color:var(--fg);font-size:13px}
 footer{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:6px;border-bottom:1px solid var(--line)}
+.tabs button{font:inherit;font-size:14.5px;background:none;border:none;border-bottom:2px solid transparent;padding:8px 14px;color:var(--muted);cursor:pointer;margin-bottom:-1px}
+.tabs button[aria-selected=true]{color:var(--fg);border-bottom-color:var(--fg);font-weight:600}
+.pane{display:flex;flex-direction:column;gap:22px}
+.pane[hidden]{display:none}
+.tiles5{grid-template-columns:repeat(auto-fit,minmax(min(100%,10rem),1fr))}
+.risk{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,17rem),1fr));gap:12px;margin-top:6px}
+.rbox{border:1px solid var(--line);border-left:6px solid var(--axis);border-radius:10px;padding:12px 14px;background:var(--panel)}
+.rbox.green{border-left-color:var(--ok)} .rbox.yellow{border-left-color:var(--warn)} .rbox.red{border-left-color:var(--bad)}
+.rhead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.rt{font-size:13.5px;font-weight:600}
+.pill{font-size:12px;padding:1px 9px;border-radius:999px;color:#fff;white-space:nowrap}
+.pill.green{background:var(--ok)} .pill.yellow{background:var(--warn)} .pill.red{background:var(--bad)}
+.rv{font-family:Georgia,serif;font-size:21px;font-variant-numeric:tabular-nums;margin:2px 0 0}
+.mini{position:relative;min-height:120px}
+.rule{font-size:12px;color:var(--muted);margin:6px 0 0;line-height:1.55}
 svg text{fill:var(--muted);font-size:12px}
 </style>
 </head>
 <body>
 <div class="wrap">
 <header>
-<h1>标普500：起始估值与之后10年回报</h1>
-<p class="lead">按 <span id="fit-from"></span> 以来的规律，现在 CAPE ≈ <b id="cape-now">—</b> 倍，对应之后 10 年的拟合年化回报约 <b id="fit-now">—</b>；<span id="lead-rates"></span></p>
+<h1>估值与之后的回报：美股与 A 股</h1>
 </header>
+<nav class="tabs" role="tablist"><button role="tab" aria-selected="true" data-pane="us">美国 · 标普500</button><button role="tab" aria-selected="false" data-pane="cn" id="tab-cn">中国 · 沪深300</button></nav>
+<div class="pane" id="pane-us">
+<p class="lead">按 <span id="fit-from"></span> 以来的规律，现在 CAPE ≈ <b id="cape-now">—</b> 倍，对应之后 10 年的拟合年化回报约 <b id="fit-now">—</b>；<span id="lead-rates"></span></p>
 <p id="stale" class="warn" hidden>注意：当前 CAPE 用的是 Shiller 数据里最近一个月的值（<span id="stale-asof"></span>），可能已经过时。可以在 config.json 里填写 cape_override，或检查 multpl.com 是否能访问。</p>
 
-<div class="tiles">
+<div class="tiles tiles5">
 <div class="card"><div class="tl">当前席勒市盈率（CAPE）</div><div class="tv"><span id="t-cape">—</span> 倍</div><div class="tn">截至 <span id="t-cape-asof">—</span></div></div>
 <div class="card" id="tile-fed"><div class="tl">联邦基金利率目标区间</div><div class="tv" id="t-fed">—</div><div class="tn">截至 <span id="t-fed-asof">—</span></div></div>
 <div class="card"><div class="tl">10 年期国债收益率</div><div class="tv" id="t-y10">—</div><div class="tn">截至 <span id="t-y10-asof">—</span></div></div>
 <div class="card" id="tile-cpi"><div class="tl">CPI 同比通胀</div><div class="tv" id="t-cpi">—</div><div class="tn">截至 <span id="t-cpi-asof">—</span></div></div>
 <div class="card"><div class="tl">拟合的之后 10 年年化回报</div><div class="tv" id="t-fit">—</div><div class="tn">线性拟合，R² <span id="t-r2">—</span></div></div>
-<div class="card"><div class="tl">CAPE 每高 1 倍，之后 10 年回报变化</div><div class="tv"><span id="t-slope">—</span> 个百分点</div><div class="tn">样本 <span id="t-n">—</span> 个起始月</div></div>
 </div>
 
 <section class="card">
@@ -97,11 +114,75 @@ svg text{fill:var(--muted);font-size:12px}
 <div class="chart" id="spreadts"></div>
 </section>
 
+<section class="card" id="sec-ecy">
+<h2>超额 CAPE 收益率（Shiller ECY）：股票相对债券贵不贵</h2>
+<p class="note">ECY = 1 ÷ CAPE（股票的长期实际盈利收益率）− 10 年期实际利率。2003 年起实际利率用通胀保值国债（TIPS，FRED DFII10），之前用 10 年期国债收益率减过去 10 年的平均通胀（Shiller 的做法）。数值越低，股票相对债券越贵。</p>
+<p class="big" id="ecy-text"></p>
+<div class="legend"><span><i class="sw ln" style="background:var(--c0)"></i>ECY</span><span><i class="sw dash" style="color:var(--muted)"></i>历史中位数</span><span><i class="sw" style="background:var(--bad)"></i>现在</span></div>
+<div class="chart" id="ecy"></div>
+</section>
+
+<section class="card" id="sec-buffett">
+<h2>巴菲特指标：美国企业股票市值 ÷ GDP</h2>
+<p class="note">FRED 的美联储资金流量表数据：非金融企业股票总市值（NCBEILQ027S）÷ 名义 GDP，按季度，约滞后一到两个季度。它和 CAPE 是两种完全不同的口径，可以互相印证。</p>
+<p class="big" id="buf-text"></p>
+<div class="legend"><span><i class="sw ln" style="background:var(--c0)"></i>市值 ÷ GDP</span><span><i class="sw dash" style="color:var(--muted)"></i>历史中位数</span><span><i class="sw" style="background:var(--bad)"></i>最新</span></div>
+<div class="chart" id="buffett"></div>
+</section>
+
+<section class="card" id="sec-risk">
+<h2>风险面板：现在是不是风险正在上升的时候</h2>
+<p class="note">这三项不判断贵不贵，而是提示信用、利率和就业是否在恶化。绿 = 平稳，黄 = 留意，红 = 警惕。规则写在每格下方，是常用的经验阈值，不是精确的预测。</p>
+<div class="risk">
+<div class="rbox" id="r-hy"><div class="rhead"><span class="rt">高收益债利差</span><span class="pill"></span></div><div class="rv"></div><div class="mini"></div><p class="rule">反映市场对违约的担忧。&lt; 4.5% 绿；4.5–6% 或 3 个月内上升 ≥ 0.75 个百分点 黄；≥ 6% 或 3 个月内上升 ≥ 1.5 个百分点 红。</p></div>
+<div class="rbox" id="r-curve"><div class="rhead"><span class="rt">10 年 − 2 年期国债利差</span><span class="pill"></span></div><div class="rv"></div><div class="mini"></div><p class="rule">收益率曲线倒挂（&lt; 0）是经典的衰退前兆。&lt; 0 红；0–0.5 或过去 2 年内倒挂过 黄；否则绿。倒挂后重新转正，往往才是衰退临近的时候。</p></div>
+<div class="rbox" id="r-sahm"><div class="rhead"><span class="rt">萨姆规则（失业率）</span><span class="pill"></span></div><div class="rv"></div><div class="mini"></div><p class="rule">失业率 3 个月均值比过去 12 个月最低点高出多少。≥ 0.5 个百分点 红（触发，历史上基本对应衰退开始）；0.3–0.5 黄；&lt; 0.3 绿。</p></div>
+</div>
+</section>
 <details><summary>数据与方法</summary>
 <p>CAPE（席勒市盈率）= 实际价格 ÷ 过去 10 年实际盈利的平均值。历史数据来自 Robert Shiller 的美股月度数据（GitHub datasets/s-and-p-500 镜像）；最新的 10 年期国债收益率、联邦基金利率和 CPI 来自 FRED。之后 10 年的年化回报含股息再投资，数据集里缺失的近期股息按最后一个值延续。</p>
 <p>10 年期国债收益率可以锁定 10 年，和"之后 10 年回报"口径一致，所以差值用它；联邦基金利率是隔夜利率，只作参考。图上都是名义回报；CPI 是最近 12 个月的通胀，不代表未来 10 年的平均通胀。</p>
 <p>误差的形状接近正态，但相邻月份的 10 年窗口重叠，实际独立样本很少（Boudoukh、Richardson、Whitelaw 2008；Boudoukh、Israel、Richardson 2019）。稳健版用自由度 = 有效样本数 − 2 的 t 分布，并计入当前 CAPE 远离历史均值带来的拟合线误差。拟合线是用全部历史事后算出的，用当时能获得的数据做滚动检验时信号误报很多，所以它适合调整预期和配置比例，不适合当作买卖开关。本页不构成投资建议。</p>
 </details>
+</div><!-- /pane-us -->
+
+<div class="pane" id="pane-cn" hidden>
+<p class="lead">按 <span id="cn-from"></span> 以来的规律，现在沪深300市盈率（TTM）≈ <b id="cn-pe-now">—</b> 倍，对应之后 5 年的拟合年化总回报约 <b id="cn-fit-now">—</b>；中国 10 年期国债收益率 <b id="cn-y-now">—</b>。</p>
+<p id="cn-stale" class="warn" hidden>注意：本周没有取到最新的沪深300数据，下面用的是 <span id="cn-stale-asof"></span> 的数值。</p>
+<div class="tiles tiles5">
+<div class="card"><div class="tl">沪深300 市盈率（TTM）</div><div class="tv"><span id="c-pe">—</span> 倍</div><div class="tn">2005 年以来 <span id="c-pct">—</span> 分位</div></div>
+<div class="card"><div class="tl">股息率</div><div class="tv" id="c-dy">—</div><div class="tn">截至 <span id="c-asof">—</span></div></div>
+<div class="card"><div class="tl">中国 10 年期国债收益率</div><div class="tv" id="c-y">—</div><div class="tn">截至 <span id="c-y-asof">—</span></div></div>
+<div class="card"><div class="tl">拟合的之后 5 年年化回报</div><div class="tv" id="c-fit">—</div><div class="tn">线性拟合，R² <span id="c-r2">—</span></div></div>
+<div class="card"><div class="tl">拟合回报 − 10 年期国债</div><div class="tv" id="c-spread">—</div><div class="tn">个百分点</div></div>
+</div>
+
+<section class="card">
+<h2>每个点 = 某个月的市盈率与之后 5 年年化总回报</h2>
+<p class="note">沪深300数据只有 2005 年以来约 20 年，10 年回报的样本太少，所以用 5 年。含股息再投资。把鼠标移到点上可以看具体月份。</p>
+<div class="legend"><span><i class="sw" style="background:var(--c0)"></i>起始月</span><span><i class="sw ln" style="background:var(--fg)"></i>线性拟合</span><span><i class="sw ln" style="background:var(--bad)"></i>当前市盈率</span><span><i class="sw ln" style="background:var(--c3)"></i>中国 10 年期国债收益率</span></div>
+<div class="chart" id="cn-scatter"></div>
+</section>
+
+<section class="card">
+<h2>拟合回报比国债高（或低）几个百分点，才算明显的信号？</h2>
+<p class="big">现在差值为 <b id="cn-s-now">—</b> 个百分点，历史误差 σ ≈ <b id="cn-s-sigma">—</b>。按正态分布，之后 5 年沪深300跑输国债的概率约 <b id="cn-s-p">—</b>；考虑到 20 年里真正独立的 5 年段只有约 <b id="cn-s-neff">—</b> 段，稳健估算（t 分布）是 <b id="cn-s-pt">—</b>。样本很少，这个概率的误差本身也很大。</p>
+<div class="legend"><span><i class="sw ln" style="background:var(--c0)"></i>稳健估算（t 分布）</span><span><i class="sw dash" style="color:var(--muted)"></i>正态估算</span><span><i class="sw" style="background:var(--c1)"></i>历史上各差值区间实际跑输的比例</span><span><i class="sw band" style="background:var(--axis)"></i>±σ 噪音区</span></div>
+<div class="chart" id="cn-prob"></div>
+</section>
+
+<section class="card">
+<h2>差值的历史走势</h2>
+<p class="note">差值 = 按市盈率拟合的之后 5 年年化回报 − 当时的中国 10 年期国债收益率；实际超额回报只到 5 年前的起点为止。</p>
+<div class="legend"><span><i class="sw ln" style="background:var(--c0)"></i>拟合差值</span><span><i class="sw ln" style="background:var(--c1)"></i>实际超额回报</span><span><i class="sw band" style="background:var(--axis)"></i>±σ 与 ±2σ 噪音区</span><span><i class="sw" style="background:var(--bad)"></i>现在</span></div>
+<div class="chart" id="cn-spread"></div>
+</section>
+
+<details><summary>数据与方法（沪深300）</summary>
+<p>2005–2026 年的月度历史（收盘点位、市盈率 TTM、股息率、中国 10 年期国债收益率）存放在仓库的 data/cn_csi300.csv。每周自动追加最新值：市盈率和股息率来自中证指数官网的估值文件，收盘点位来自 Yahoo Finance（备用：中证指数官网），国债收益率来自东方财富数据中心。官网估值口径与历史数据略有不同，第一次取到数据时会算一个衔接系数（data/cn_splice.json），之后一直沿用，保证前后可比。之后 5 年年化回报含股息再投资。国债收益率取不到时，可以在 config.json 里填写 cn_y10_override。本页不构成投资建议。</p>
+</details>
+</div><!-- /pane-cn -->
+
 <footer>最后生成：<span id="built"></span> · 每周自动更新（GitHub Actions）</footer>
 </div>
 
@@ -125,12 +206,27 @@ function fillText() {
   if (c.fed_low && c.fed_high) { set('t-fed', `${f2(c.fed_low.value)}%–${f2(c.fed_high.value)}%`); set('t-fed-asof', c.fed_high.as_of); } else $('tile-fed').style.display = 'none';
   set('t-y10', f2(c.y10.value) + '%'); set('t-y10-asof', c.y10.as_of);
   if (c.cpi) { set('t-cpi', f1(c.cpi.value) + '%'); set('t-cpi-asof', c.cpi.as_of); } else $('tile-cpi').style.display = 'none';
-  set('t-fit', f1(f.fitted_now) + '%'); set('t-r2', f2(f.r2)); set('t-slope', (f.slope < 0 ? '−' : '+') + f2(Math.abs(f.slope))); set('t-n', d3.format(',')(f.n));
+  set('t-fit', f1(f.fitted_now) + '%'); set('t-r2', f2(f.r2));
   set('s-now', sg(s.now_spread)); set('s-sigma', f1(s.sigma)); set('s-p', pc(s.p_now)); set('s-c75', sg(s.cut75)); set('s-c90', sg(s.cut90));
   set('s-neff', f1(s.n_eff)); set('s-pt', pc(s.p_now_t)); set('s-c75t', sg(s.cut75_t)); set('s-c90t', sg(s.cut90_t));
   set('built', DATA.built_at);
   const ageDays = (Date.parse(DATA.built_at.slice(0, 10)) - Date.parse((c.cape.as_of.length === 7 ? c.cape.as_of + '-01' : c.cape.as_of))) / 864e5;
   if (!(ageDays < 75)) { $('stale').hidden = false; set('stale-asof', c.cape.as_of); }
+  const e = DATA.ecy, bf = DATA.buffett;
+  if (e) $('ecy-text').innerHTML = `现在 1 ÷ CAPE ≈ <b>${f2(e.earn_yield)}%</b>，10 年期 TIPS 实际利率 <b>${f2(e.real_now)}%</b>（${e.real_asof}），ECY ≈ <b>${f2(e.now)}%</b>，低于 ${pc(1 - e.pct)} 的历史月份（中位数 ${f1(e.median)}%）。ECY 越接近 0，股票相对债券的额外回报越少。`;
+  else $('sec-ecy').hidden = true;
+  if (bf) $('buf-text').innerHTML = `最新（${bf.as_of}）约为 GDP 的 <b>${d3.format('.0f')(bf.now)}%</b>，历史中位数 ${d3.format('.0f')(bf.median)}%，高于 ${pc(bf.pct)} 的历史季度；历史最高 ${d3.format('.0f')(bf.max)}%（${bf.max_at}）。`;
+  else $('sec-buffett').hidden = true;
+  if (!DATA.risk) $('sec-risk').hidden = true;
+  const cn = DATA.cn;
+  if (!cn) { $('tab-cn').hidden = true; return; }
+  const k = cn.current, cf = cn.fit, cs = cn.signal;
+  set('cn-from', cf.from.slice(0, 4) + ' 年'); set('cn-pe-now', f1(k.pe.value)); set('cn-fit-now', f1(cf.fitted_now) + '%'); set('cn-y-now', f2(k.y10.value) + '%');
+  set('c-pe', f1(k.pe.value)); set('c-pct', pc(k.pe_pct)); set('c-dy', f2(k.dy.value) + '%'); set('c-asof', k.pe.as_of);
+  set('c-y', f2(k.y10.value) + '%'); set('c-y-asof', k.y10.as_of); set('c-fit', f1(cf.fitted_now) + '%'); set('c-r2', f2(cf.r2)); set('c-spread', sg(cs.now_spread));
+  set('cn-s-now', sg(cs.now_spread)); set('cn-s-sigma', f1(cs.sigma)); set('cn-s-p', pc(cs.p_now)); set('cn-s-neff', f1(cs.n_eff)); set('cn-s-pt', pc(cs.p_now_t));
+  const age = (Date.parse(DATA.built_at.slice(0, 10)) - Date.parse(k.pe.as_of.length === 7 ? k.pe.as_of + '-01' : k.pe.as_of)) / 864e5;
+  if (cn.stale && cn.stale.length && age > 10) { $('cn-stale').hidden = false; set('cn-stale-asof', k.pe.as_of); }
 }
 
 function frame(el, ratio, minH, maxH) {
@@ -146,40 +242,39 @@ function zeroGrid(g, yt, y, x0, x1) {
   g.selectAll('line').data(yt).join('line').attr('x1', x0).attr('x2', x1).attr('y1', (d) => y(d)).attr('y2', (d) => y(d))
     .style('stroke', (d) => (d === 0 ? css('--fg') : css('--grid'))).style('stroke-width', (d) => (d === 0 ? 1.8 : 1)).style('opacity', (d) => (d === 0 ? 0.75 : 1));
 }
+const toT = (m) => new Date(m + '-01T00:00:00Z');
 
-function drawScatter() {
-  const el = $('scatter'), {W, H, svg, tip} = frame(el, 0.58, 320, 560);
-  const f = DATA.fit, c = DATA.current, from = f.from;
-  const pts = DATA.points.map((r) => ({...r, old: r.m < from}));
-  const cape = c.cape.value, xMax = Math.max(46, cape + 3);
+// o: {xLabel, xMin, xMax, nowLabel, horizon, band:{lo,hi,label}, lines:[{v,label,color,dash,below}]}
+function drawScatter(elId, D, o) {
+  const el = $(elId), {W, H, svg, tip} = frame(el, 0.58, 320, 560);
+  const f = D.fit, from = f.from;
+  const pts = D.points.map((r) => ({...r, old: r.m < from}));
+  const xn = f.x_now, xMax = Math.max(o.xMax, xn + 3);
   const y = d3.scaleLinear([Math.min(-6, d3.min(pts, (d) => d.y) - 1), Math.max(22, d3.max(pts, (d) => d.y) + 1)], [0, 1]);
   const yt = y.ticks(6), m = {t: 14, r: 16, b: 42, l: leftMargin(svg, yt.map((t) => t + '%'))};
-  const x = d3.scaleLinear([4, xMax], [m.l, W - m.r]); y.range([H - m.b, m.t]);
+  const x = d3.scaleLinear([o.xMin, xMax], [m.l, W - m.r]); y.range([H - m.b, m.t]);
   zeroGrid(svg.append('g'), yt, y, m.l, W - m.r);
   svg.append('g').selectAll('text').data(yt).join('text').attr('x', m.l - 8).attr('y', (d) => y(d)).attr('dy', '0.32em').attr('text-anchor', 'end').text((d) => d + '%');
   svg.append('g').selectAll('text').data(x.ticks(W < 520 ? 5 : 9)).join('text').attr('x', (d) => x(d)).attr('y', H - m.b + 18).attr('text-anchor', 'middle').text((d) => d);
-  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text('起始时的 CAPE（倍）');
-  if (c.fed_low && c.fed_high) {
-    const fl = c.fed_low.value, fh = c.fed_high.value;
-    svg.append('rect').attr('x', m.l).attr('width', W - m.l - m.r).attr('y', y(fh)).attr('height', Math.max(2, y(fl) - y(fh))).style('fill', css('--c1')).style('opacity', 0.35);
-    svg.append('text').attr('x', m.l + 6).attr('y', y(fh) - 6).style('fill', css('--fg')).text(`联邦基金利率 ${f2(fl)}–${f2(fh)}%`);
+  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text(o.xLabel);
+  if (o.band) {
+    const {lo, hi, label} = o.band;
+    svg.append('rect').attr('x', m.l).attr('width', W - m.l - m.r).attr('y', y(hi)).attr('height', Math.max(2, y(lo) - y(hi))).style('fill', css('--c1')).style('opacity', 0.35);
+    svg.append('text').attr('x', m.l + 6).attr('y', y(hi) - 6).style('fill', css('--fg')).text(label);
   }
-  const yv = c.y10.value;
-  svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(yv)).attr('y2', y(yv)).style('stroke', css('--c3')).style('stroke-width', 2);
-  svg.append('text').attr('x', W - m.r - 4).attr('y', y(yv) - 6).attr('text-anchor', 'end').style('fill', css('--fg')).text(`10 年期国债 ${f2(yv)}%`);
-  if (c.cpi) {
-    const cv = c.cpi.value;
-    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(cv)).attr('y2', y(cv)).style('stroke', css('--c2')).style('stroke-width', 1.8).attr('stroke-dasharray', '6 4');
-    svg.append('text').attr('x', W - m.r - 4).attr('y', y(cv) + 15).attr('text-anchor', 'end').style('fill', css('--fg')).text(`CPI 同比 ${f1(cv)}%（${c.cpi.as_of}）`);
-  }
+  (o.lines || []).forEach((l) => {
+    svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(l.v)).attr('y2', y(l.v)).style('stroke', css(l.color)).style('stroke-width', 2).attr('stroke-dasharray', l.dash ? '6 4' : null);
+    svg.append('text').attr('x', W - m.r - 4).attr('y', y(l.v) + (l.below ? 15 : -6)).attr('text-anchor', 'end').style('fill', css('--fg')).text(l.label);
+  });
   svg.append('g').selectAll('circle').data(pts.filter((d) => d.old)).join('circle').attr('cx', (d) => x(d.x)).attr('cy', (d) => y(d.y)).attr('r', 2.2).style('fill', css('--dot-old')).style('opacity', 0.6);
   svg.append('g').selectAll('circle').data(pts.filter((d) => !d.old)).join('circle').attr('cx', (d) => x(d.x)).attr('cy', (d) => y(d.y)).attr('r', 2.6).style('fill', css('--c0')).style('opacity', 0.75);
   const x0 = d3.min(pts.filter((d) => !d.old), (d) => d.x);
   svg.append('line').attr('x1', x(x0)).attr('y1', y(f.slope * x0 + f.intercept)).attr('x2', x(xMax)).attr('y2', y(f.slope * xMax + f.intercept)).style('stroke', css('--fg')).style('stroke-width', 2);
-  svg.append('line').attr('x1', x(cape)).attr('x2', x(cape)).attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--bad')).style('stroke-width', 1.5).attr('stroke-dasharray', '4 3');
-  svg.append('text').attr('x', x(cape) - 6).attr('y', m.t + 10).attr('text-anchor', 'end').style('fill', css('--bad')).text(`现在 CAPE ≈ ${f1(cape)}`);
-  svg.append('circle').attr('cx', x(cape)).attr('cy', y(f.fitted_now)).attr('r', 5).style('fill', css('--bg')).style('stroke', css('--fg')).style('stroke-width', 2);
-  svg.append('text').attr('x', x(cape) - 10).attr('y', y(f.fitted_now) - 10).attr('text-anchor', 'end').style('fill', css('--fg')).style('font-weight', 600).text(`拟合值 ${f1(f.fitted_now)}%/年`);
+  svg.append('line').attr('x1', x(xn)).attr('x2', x(xn)).attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--bad')).style('stroke-width', 1.5).attr('stroke-dasharray', '4 3');
+  const right = x(xn) < m.l + 160;
+  svg.append('text').attr('x', x(xn) + (right ? 6 : -6)).attr('y', m.t + 10).attr('text-anchor', right ? 'start' : 'end').style('fill', css('--bad')).text(`${o.nowLabel} ≈ ${f1(xn)}`);
+  svg.append('circle').attr('cx', x(xn)).attr('cy', y(f.fitted_now)).attr('r', 5).style('fill', css('--bg')).style('stroke', css('--fg')).style('stroke-width', 2);
+  svg.append('text').attr('x', x(xn) + (right ? 10 : -10)).attr('y', y(f.fitted_now) - 10).attr('text-anchor', right ? 'start' : 'end').style('fill', css('--fg')).style('font-weight', 600).text(`拟合值 ${f1(f.fitted_now)}%/年`);
   const dl = d3.Delaunay.from(pts, (d) => x(d.x), (d) => y(d.y));
   const hl = svg.append('circle').attr('r', 5).style('fill', 'none').style('stroke', css('--fg')).style('display', 'none');
   svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).style('fill', 'transparent')
@@ -188,8 +283,8 @@ function drawScatter() {
       if (!d || Math.hypot(x(d.x) - px, y(d.y) - py) > 30) { hl.style('display', 'none'); tip.style('display', 'none'); return; }
       hl.style('display', null).attr('cx', x(d.x)).attr('cy', y(d.y));
       tip.html('').style('display', 'block');
-      tip.append('div').attr('class', 'd').text(`${d.m} 起的 10 年`);
-      tip.append('div').text(`CAPE ${f1(d.x)} · 年化回报 ${f1(d.y)}%`);
+      tip.append('div').attr('class', 'd').text(`${d.m} 起的 ${o.horizon}`);
+      tip.append('div').text(`${o.xShort} ${f1(d.x)} · 年化回报 ${f1(d.y)}%`);
       placeTip(el, tip, x(d.x), y(d.y), W);
     }).on('pointerleave', () => { hl.style('display', 'none'); tip.style('display', 'none'); });
 }
@@ -198,11 +293,12 @@ function erf(x) { const t = 1 / (1 + 0.3275911 * Math.abs(x)); const v = 1 - (((
 function lgam(x) { const g = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5]; let yy = x, tmp = x + 5.5; tmp -= (x + 0.5) * Math.log(tmp); let ser = 1.000000000190015; for (const c of g) ser += c / ++yy; return -tmp + Math.log(2.5066282746310005 * ser / x); }
 function tcdf(t, v) { const k = Math.exp(lgam((v + 1) / 2) - lgam(v / 2)) / Math.sqrt(v * Math.PI); const a = Math.abs(t), N = 200, hh = a / N; let s = 0; for (let i = 0; i <= N; i++) { const u = i * hh; s += k * Math.pow(1 + u * u / v, -(v + 1) / 2) * (i === 0 || i === N ? 1 : i % 2 ? 4 : 2); } const area = s * hh / 3; return t >= 0 ? 0.5 + area : 0.5 - area; }
 
-function drawProb() {
-  const el = $('probcurve'), {W, H, svg, tip} = frame(el, 0.54, 360, 520);
-  const s = DATA.signal, bk = DATA.buckets;
+// o: {horizon, rate, axis}
+function drawProb(elId, D, o) {
+  const el = $(elId), {W, H, svg, tip} = frame(el, 0.54, 360, 520);
+  const s = D.signal, bk = D.buckets;
   const pl = (v) => 0.5 * (1 + erf((-v / s.sigma) / Math.SQRT2)), plT = (v) => tcdf(-v / s.sigma_t, s.df);
-  const xMin = Math.min(-9, s.now_spread - 1.5), xMax = 11, yt = [0, 0.25, 0.5, 0.75, 1];
+  const xMin = Math.min(-9, s.now_spread - 1.5), xMax = Math.max(11, s.now_spread + 2), yt = [0, 0.25, 0.5, 0.75, 1];
   const m = {t: 70, r: 16, b: 42, l: leftMargin(svg, yt.map(pc))};
   const x = d3.scaleLinear([xMin, xMax], [m.l, W - m.r]), y = d3.scaleLinear([0, 1], [H - m.b, m.t]);
   svg.append('rect').attr('x', x(-s.sigma)).attr('width', x(s.sigma) - x(-s.sigma)).attr('y', m.t).attr('height', H - m.t - m.b).style('fill', css('--axis')).style('opacity', 0.18);
@@ -210,12 +306,12 @@ function drawProb() {
   svg.append('g').selectAll('line').data(yt).join('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', (d) => y(d)).attr('y2', (d) => y(d)).style('stroke', css('--grid'));
   svg.append('g').selectAll('text').data(yt).join('text').attr('x', m.l - 8).attr('y', (d) => y(d)).attr('dy', '0.32em').attr('text-anchor', 'end').text(pc);
   svg.append('g').selectAll('text').data(x.ticks(W < 520 ? 6 : 10)).join('text').attr('x', (d) => x(d)).attr('y', H - m.b + 18).attr('text-anchor', 'middle').text((d) => (d > 0 ? '+' : d < 0 ? '−' : '') + Math.abs(d));
-  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text('差值：拟合的股票回报 − 10 年期国债收益率（个百分点）');
+  svg.append('text').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text(o.axis);
   svg.append('line').attr('x1', x(0)).attr('x2', x(0)).attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--fg')).style('stroke-width', 1.4).style('opacity', 0.6);
   const side = (t, xx, a) => svg.append('text').attr('x', xx).attr('y', 20).attr('text-anchor', a).style('font-size', '15px').style('font-weight', 600).style('fill', css('--fg')).text(t);
   side('← 债券大概率占优', m.l + 8, 'start'); side('股票大概率占优 →', W - m.r - 8, 'end');
-  svg.append('text').attr('x', m.l + 8).attr('y', 38).text('之后 10 年股票跑输国债的概率高');
-  svg.append('text').attr('x', W - m.r - 8).attr('y', 38).attr('text-anchor', 'end').text('之后 10 年股票跑输国债的概率低');
+  svg.append('text').attr('x', m.l + 8).attr('y', 38).text(`之后 ${o.horizon}股票跑输国债的概率高`);
+  svg.append('text').attr('x', W - m.r - 8).attr('y', 38).attr('text-anchor', 'end').text(`之后 ${o.horizon}股票跑输国债的概率低`);
   svg.append('text').attr('x', x(0)).attr('y', 56).attr('text-anchor', 'middle').text('中间：分不清');
   const xs = d3.range(xMin, xMax + 0.01, 0.1);
   svg.append('path').datum(xs).attr('d', d3.line().x((d) => x(d)).y((d) => y(pl(d)))).style('fill', 'none').style('stroke', css('--muted')).style('stroke-width', 1.6).attr('stroke-dasharray', '5 4');
@@ -224,12 +320,13 @@ function drawProb() {
   const rs = d3.scaleSqrt([0, d3.max(bk, (b) => b.n)], [0, 16]);
   const dots = svg.append('g').selectAll('circle').data(bk).join('circle').attr('cx', (b) => x(mid(b))).attr('cy', (b) => y(b.p_lose)).attr('r', (b) => Math.max(4, rs(b.n)))
     .style('fill', css('--c1')).style('opacity', 0.75).style('stroke', css('--panel')).style('stroke-width', 1.5);
-  const nv = s.now_spread, pv = pl(nv), pvT = plT(nv);
+  const nv = s.now_spread, pv = pl(nv), pvT = plT(nv), left = x(nv) > W - m.r - 230;
   svg.append('line').attr('x1', x(nv)).attr('x2', x(nv)).attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--bad')).style('stroke-width', 1.5).attr('stroke-dasharray', '4 3');
   svg.append('circle').attr('cx', x(nv)).attr('cy', y(pv)).attr('r', 4).style('fill', css('--panel')).style('stroke', css('--muted')).style('stroke-width', 2);
   svg.append('circle').attr('cx', x(nv)).attr('cy', y(pvT)).attr('r', 5.5).style('fill', css('--panel')).style('stroke', css('--bad')).style('stroke-width', 2);
-  svg.append('text').attr('x', x(nv) + 9).attr('y', y(pvT) + 4).style('fill', css('--bad')).style('font-weight', 600).text(`现在 ${sg(nv)}：稳健估算约 ${pc(pvT)}`);
-  svg.append('text').attr('x', x(nv) + 9).attr('y', y(pv) - 4).text(`正态估算 ${pc(pv)}`);
+  const dx = left ? -9 : 9, an = left ? 'end' : 'start';
+  svg.append('text').attr('x', x(nv) + dx).attr('y', y(pvT) - 8).attr('text-anchor', an).style('fill', css('--bad')).style('font-weight', 600).text(`现在 ${sg(nv)}：稳健估算约 ${pc(pvT)}`);
+  svg.append('text').attr('x', x(nv) + dx).attr('y', y(pv) + 16).attr('text-anchor', an).text(`正态估算 ${pc(pv)}`);
   dots.on('pointerenter', (ev, b) => {
     tip.html('').style('display', 'block');
     tip.append('div').attr('class', 'd').text(`差值 ${b.bucket} 个百分点（${b.first_year}–${b.last_year}）`);
@@ -238,12 +335,12 @@ function drawProb() {
   }).on('pointerleave', () => tip.style('display', 'none'));
 }
 
-function drawSpread() {
-  const el = $('spreadts'), {W, H, svg, tip} = frame(el, 0.45, 300, 460);
-  const s = DATA.signal, rows = DATA.spread.filter((r) => r.s != null).map((r) => ({...r, t: new Date(r.m + '-01T00:00:00Z')}));
-  const asof = DATA.current.y10.as_of, tNow = new Date(asof.slice(0, 7) + '-01T00:00:00Z');
+function drawSpread(elId, D, asof) {
+  const el = $(elId), {W, H, svg, tip} = frame(el, 0.45, 300, 460);
+  const s = D.signal, rows = D.spread.filter((r) => r.s != null).map((r) => ({...r, t: toT(r.m)}));
+  const tNow = toT(asof.slice(0, 7));
   const lo = Math.min(d3.min(rows, (r) => Math.min(r.s, r.e ?? r.s)), s.now_spread, -2 * s.sigma) - 1;
-  const hi = Math.max(d3.max(rows, (r) => Math.max(r.s, r.e ?? r.s)), 2 * s.sigma) + 1;
+  const hi = Math.max(d3.max(rows, (r) => Math.max(r.s, r.e ?? r.s)), s.now_spread, 2 * s.sigma) + 1;
   const y = d3.scaleLinear([lo, hi], [0, 1]).nice(), yt = y.ticks(6);
   const m = {t: 14, r: 16, b: 30, l: leftMargin(svg, yt.map((t) => '−' + Math.abs(t)))};
   y.range([H - m.b, m.t]);
@@ -260,7 +357,7 @@ function drawSpread() {
   const last = rows[rows.length - 1];
   svg.append('line').attr('x1', x(last.t)).attr('y1', y(last.s)).attr('x2', x(tNow)).attr('y2', y(s.now_spread)).style('stroke', css('--c0')).style('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
   svg.append('circle').attr('cx', x(tNow)).attr('cy', y(s.now_spread)).attr('r', 5.5).style('fill', css('--bad')).style('stroke', css('--panel')).style('stroke-width', 2);
-  svg.append('text').attr('x', x(tNow) - 10).attr('y', y(s.now_spread) + 4).attr('text-anchor', 'end').style('fill', css('--bad')).style('font-weight', 600).text(`现在 ${sg(s.now_spread)}`);
+  svg.append('text').attr('x', x(tNow) - 10).attr('y', y(s.now_spread) - 10).attr('text-anchor', 'end').style('fill', css('--bad')).style('font-weight', 600).text(`现在 ${sg(s.now_spread)}`);
   const hl = svg.append('line').attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--axis')).style('display', 'none');
   const bis = d3.bisector((r) => r.t).center;
   svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).style('fill', 'transparent')
@@ -274,8 +371,103 @@ function drawSpread() {
     }).on('pointerleave', () => { hl.style('display', 'none'); tip.style('display', 'none'); });
 }
 
-function drawAll() { drawScatter(); drawProb(); drawSpread(); }
-fillText(); drawAll();
+// generic time-series line with median and current point. o: {unit, nowT, nowV, nowLabel, median, mark:{m,label}, fmt}
+function drawLine(elId, series, o) {
+  const el = $(elId), {W, H, svg, tip} = frame(el, 0.42, 280, 420);
+  const rows = series.filter((r) => r.v != null).map((r) => ({...r, t: toT(r.m)}));
+  const fmt = o.fmt || f1, vals = rows.map((r) => r.v).concat([o.nowV]);
+  const y = d3.scaleLinear([Math.min(0, d3.min(vals)), d3.max(vals)], [0, 1]).nice(), yt = y.ticks(6);
+  const m = {t: 16, r: 16, b: 30, l: leftMargin(svg, yt.map((t) => t + o.unit))};
+  y.range([H - m.b, m.t]);
+  const tEnd = d3.max([rows[rows.length - 1].t, o.nowT]);
+  const x = d3.scaleUtc([rows[0].t, d3.utcMonth.offset(tEnd, 18)], [m.l, W - m.r]);
+  zeroGrid(svg.append('g'), yt, y, m.l, W - m.r);
+  svg.append('g').selectAll('text').data(yt).join('text').attr('x', m.l - 8).attr('y', (d) => y(d)).attr('dy', '0.32em').attr('text-anchor', 'end').text((d) => d + o.unit);
+  svg.append('g').selectAll('text').data(x.ticks(W < 520 ? 5 : 10)).join('text').attr('x', (d) => x(d)).attr('y', H - m.b + 18).attr('text-anchor', 'middle').text(d3.utcFormat('%Y'));
+  if (o.mark) {
+    const tm = toT(o.mark.m);
+    svg.append('line').attr('x1', x(tm)).attr('x2', x(tm)).attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--axis')).attr('stroke-dasharray', '2 3');
+    svg.append('text').attr('x', x(tm) + 4).attr('y', m.t + 10).text(o.mark.label);
+  }
+  svg.append('line').attr('x1', m.l).attr('x2', W - m.r).attr('y1', y(o.median)).attr('y2', y(o.median)).style('stroke', css('--muted')).style('stroke-width', 1.4).attr('stroke-dasharray', '6 4');
+  svg.append('text').attr('x', m.l + 6).attr('y', y(o.median) - 6).text(`历史中位数 ${fmt(o.median)}${o.unit}`);
+  svg.append('path').datum(rows).attr('d', d3.line().x((r) => x(r.t)).y((r) => y(r.v))).style('fill', 'none').style('stroke', css('--c0')).style('stroke-width', 1.8);
+  const last = rows[rows.length - 1];
+  if (+o.nowT > +last.t) svg.append('line').attr('x1', x(last.t)).attr('y1', y(last.v)).attr('x2', x(o.nowT)).attr('y2', y(o.nowV)).style('stroke', css('--c0')).style('stroke-width', 1.5).attr('stroke-dasharray', '3 3');
+  svg.append('circle').attr('cx', x(o.nowT)).attr('cy', y(o.nowV)).attr('r', 5.5).style('fill', css('--bad')).style('stroke', css('--panel')).style('stroke-width', 2);
+  const below = y(o.nowV) < m.t + 30;
+  svg.append('text').attr('x', x(o.nowT) - 10).attr('y', y(o.nowV) + (below ? 18 : -10)).attr('text-anchor', 'end').style('fill', css('--bad')).style('font-weight', 600).text(`${o.nowLabel} ${fmt(o.nowV)}${o.unit}`);
+  const hl = svg.append('line').attr('y1', m.t).attr('y2', H - m.b).style('stroke', css('--axis')).style('display', 'none');
+  const bis = d3.bisector((r) => r.t).center;
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).style('fill', 'transparent')
+    .on('pointermove', (ev) => {
+      const [px] = d3.pointer(ev), r = rows[bis(rows, x.invert(px))]; if (!r) return;
+      hl.style('display', null).attr('x1', x(r.t)).attr('x2', x(r.t));
+      tip.html('').style('display', 'block');
+      tip.append('div').attr('class', 'd').text(r.m);
+      tip.append('div').text(fmt(r.v) + o.unit);
+      placeTip(el, tip, x(r.t), y(r.v), W);
+    }).on('pointerleave', () => { hl.style('display', 'none'); tip.style('display', 'none'); });
+}
+
+const LV = {green: '平稳', yellow: '留意', red: '警惕'};
+// o: {from, yMin, yMax, lines:[v...], unit}
+function drawRisk(boxId, R, o) {
+  const box = $(boxId);
+  if (!R) { box.hidden = true; return; }
+  box.className = 'rbox ' + R.level;
+  const pill = box.querySelector('.pill'); pill.className = 'pill ' + R.level; pill.textContent = LV[R.level];
+  box.querySelector('.rv').textContent = (R.now >= 0 ? '' : '−') + f2(Math.abs(R.now)) + (R.unit === '%' ? '%' : ' 个百分点') + `（${R.as_of}）`;
+  const el = box.querySelector('.mini'), {W, H, svg} = frame(el, 0.42, 120, 150);
+  const rows = R.series.filter((r) => r.v != null && r.m >= o.from).map((r) => ({...r, t: toT(r.m)}));
+  const y = d3.scaleLinear([o.yMin, o.yMax], [H - 18, 6]).clamp(true), x = d3.scaleUtc(d3.extent(rows, (r) => r.t), [30, W - 6]);
+  svg.append('g').selectAll('text').data(o.labels).join('text').attr('x', 26).attr('y', (d) => y(d)).attr('dy', '0.32em').attr('text-anchor', 'end').style('font-size', '10px').text((d) => d);
+  o.lines.forEach((v) => svg.append('line').attr('x1', 30).attr('x2', W - 6).attr('y1', y(v)).attr('y2', y(v)).style('stroke', v === 0 ? css('--fg') : css('--axis')).style('opacity', v === 0 ? 0.6 : 1).attr('stroke-dasharray', v === 0 ? null : '3 3'));
+  svg.append('g').selectAll('text.yr').data(x.ticks(4)).join('text').attr('x', (d) => x(d)).attr('y', H - 4).attr('text-anchor', 'middle').style('font-size', '10px').text(d3.utcFormat('%Y'));
+  svg.append('path').datum(rows).attr('d', d3.line().x((r) => x(r.t)).y((r) => y(r.v))).style('fill', 'none').style('stroke', css('--c0')).style('stroke-width', 1.4);
+  const l = rows[rows.length - 1];
+  svg.append('circle').attr('cx', x(l.t)).attr('cy', y(R.now)).attr('r', 4).style('fill', css(R.level === 'green' ? '--ok' : R.level === 'yellow' ? '--warn' : '--bad'));
+}
+
+function drawUS() {
+  const c = DATA.current;
+  const lines = [{v: c.y10.value, label: `10 年期国债 ${f2(c.y10.value)}%`, color: '--c3'}];
+  if (c.cpi) lines.push({v: c.cpi.value, label: `CPI 同比 ${f1(c.cpi.value)}%（${c.cpi.as_of}）`, color: '--c2', dash: true, below: true});
+  drawScatter('scatter', DATA, {xLabel: '起始时的 CAPE（倍）', xShort: 'CAPE', xMin: 4, xMax: 46, nowLabel: '现在 CAPE', horizon: '10 年',
+    band: c.fed_low && c.fed_high ? {lo: c.fed_low.value, hi: c.fed_high.value, label: `联邦基金利率 ${f2(c.fed_low.value)}–${f2(c.fed_high.value)}%`} : null, lines});
+  drawProb('probcurve', DATA, {horizon: '10 年', axis: '差值：拟合的股票回报 − 10 年期国债收益率（个百分点）'});
+  drawSpread('spreadts', DATA, c.y10.as_of);
+  const today = toT(DATA.built_at.slice(0, 7));
+  if (DATA.ecy) drawLine('ecy', DATA.ecy.series, {unit: '%', nowT: today, nowV: DATA.ecy.now, nowLabel: '现在', median: DATA.ecy.median, fmt: f2, mark: {m: '2003-01', label: '此后用 TIPS 实际利率'}});
+  if (DATA.buffett) { const b = DATA.buffett, q = b.series[b.series.length - 1].m; drawLine('buffett', b.series, {unit: '%', nowT: toT(q), nowV: b.now, nowLabel: '最新', median: b.median, fmt: d3.format('.0f')}); }
+  const R = DATA.risk || {};
+  if (DATA.risk) {
+    drawRisk('r-hy', R.hy, {from: '2000-01', yMin: 0, yMax: 20, lines: [4.5, 6], labels: [0, 6, 20]});
+    drawRisk('r-curve', R.curve, {from: '1985-01', yMin: -2, yMax: 3, lines: [0, 0.5], labels: [-2, 0, 3]});
+    drawRisk('r-sahm', R.sahm, {from: '1985-01', yMin: 0, yMax: 3, lines: [0.3, 0.5], labels: [0, 0.5, 3]});
+  }
+}
+
+function drawCN() {
+  const cn = DATA.cn; if (!cn) return;
+  const y = cn.current.y10;
+  drawScatter('cn-scatter', cn, {xLabel: '起始时的沪深300市盈率（TTM，倍）', xShort: '市盈率', xMin: 6, xMax: 50, nowLabel: '现在市盈率', horizon: '5 年',
+    lines: [{v: y.value, label: `中国 10 年期国债 ${f2(y.value)}%`, color: '--c3', below: true}]});
+  drawProb('cn-prob', cn, {horizon: '5 年', axis: '差值：拟合的 5 年回报 − 中国 10 年期国债收益率（个百分点）'});
+  drawSpread('cn-spread', cn, cn.current.pe.as_of);
+}
+
+let pane = 'us';
+function drawAll() { if (pane === 'us') drawUS(); else drawCN(); }
+document.querySelectorAll('.tabs button').forEach((b) => b.addEventListener('click', () => {
+  pane = b.dataset.pane;
+  document.querySelectorAll('.tabs button').forEach((x) => x.setAttribute('aria-selected', x === b));
+  $('pane-us').hidden = pane !== 'us'; $('pane-cn').hidden = pane !== 'cn';
+  history.replaceState(null, '', pane === 'cn' ? '#cn' : '#');
+  drawAll();
+}));
+fillText();
+if (location.hash === '#cn' && DATA.cn) document.querySelector('[data-pane=cn]').click(); else drawAll();
 let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(drawAll, 150); });
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawAll);
 </script>
