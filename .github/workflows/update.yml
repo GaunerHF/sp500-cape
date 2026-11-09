@@ -35,14 +35,13 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
         run: python build.py
 
-      - name: Save data snapshot (keeps the repo active)
-        if: github.event_name != 'push'
+      - name: Save data (CSI 300 history + snapshot; also keeps the repo active)
         run: |
           mkdir -p data
           cp site/data.json data/latest.json
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/latest.json
+          git add data/
           git diff --cached --quiet || git commit -m "data: update $(date -u +%F) [skip ci]"
           git push || echo "push skipped"
 
