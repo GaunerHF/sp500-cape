@@ -1,0 +1,61 @@
+name: Update site
+
+on:
+  schedule:
+    - cron: "43 7 * * 1"   # 每周一 07:43 UTC（柏林冬令时 08:43，夏令时 09:43）
+  workflow_dispatch:        # 允许在 Actions 页面手动点 "Run workflow"
+  push:
+    branches: [main]        # 改了代码或配置也会自动重建
+
+permissions:
+  contents: write           # 用于把每次的数据快照提交回仓库
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build page
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python build.py
+
+      - name: Save data snapshot (keeps the repo active)
+        if: github.event_name != 'push'
+        run: |
+          mkdir -p data
+          cp site/data.json data/latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/latest.json
+          git diff --cached --quiet || git commit -m "data: update $(date -u +%F) [skip ci]"
+          git push || echo "push skipped"
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
