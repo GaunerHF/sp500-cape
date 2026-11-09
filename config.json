@@ -1,0 +1,7 @@
+{
+  "fit_start": "1957-01",
+  "history_start": "1957-01",
+  "cape_override": null,
+  "cape_override_as_of": null,
+  "shiller_csv_url": "https://raw.githubusercontent.com/datasets/s-and-p-500/main/data/data.csv"
+}
